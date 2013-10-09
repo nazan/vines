@@ -12,7 +12,7 @@
  * @author Hussain Nazan Naeem <hussennaeem@gmail.com>
  */
 
-namespace Vines;
+namespace ColorAnomaly;
 
 class Vines {
 
@@ -36,20 +36,18 @@ class Vines {
 
         $this->pdo = new \PDO("mysql:host={$pdoConfig['host']};dbname={$pdoConfig['dbname']}", $pdoConfig['username'], $pdoConfig['password']);
 
-
-
         $this->roleStructure = (
                 (
                 !is_null($roleStructure) &&
-                in_array($roleStructure, array(self::ROLE_STRUCT_HIER, self::ROLE_STRUCT_FLAT_W_TAGS))
-                ) ? $roleStructure : self::ROLE_STRUCT_FLAT_W_TAGS
+                in_array($roleStructure, array(static::ROLE_STRUCT_HIER, static::ROLE_STRUCT_FLAT_W_TAGS))
+                ) ? $roleStructure : static::ROLE_STRUCT_FLAT_W_TAGS
                 );
 
 
-        $this->checkTreeStructure(self::RESOURCE_TABLE);
+        $this->checkTreeStructure(static::RESOURCE_TABLE);
 
-        if ($this->roleStructure == self::ROLE_STRUCT_FLAT_W_TAGS) {
-            $q = $this->pdo->query("DELETE FROM `" . self::ROLE_TABLE . "` WHERE `lt` IS NOT NULL AND `rt` IS NOT NULL");
+        if ($this->roleStructure == static::ROLE_STRUCT_FLAT_W_TAGS) {
+            $q = $this->pdo->query("DELETE FROM `" . static::ROLE_TABLE . "` WHERE `lt` IS NOT NULL AND `rt` IS NOT NULL");
 
             $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
 
@@ -57,13 +55,13 @@ class Vines {
                 throw new \PDOException("Unable to reset role table. ERROR: " . $err[2]);
             }
         } else {
-            $this->checkTreeStructure(self::ROLE_TABLE);
+            $this->checkTreeStructure(static::ROLE_TABLE);
         }
     }
 
     public function checkTreeStructure($table) {
         $q = $this->pdo->prepare("SELECT * FROM `$table` WHERE `alias`=:alias");
-        $q->bindValue(':alias', self::TREE_ROOT_ALIAS, \PDO::PARAM_STR);
+        $q->bindValue(':alias', static::TREE_ROOT_ALIAS, \PDO::PARAM_STR);
 
         $q->execute();
 
@@ -77,7 +75,7 @@ class Vines {
             $q = $this->pdo->prepare("DELETE FROM `$table`; INSERT INTO `$table` (`lt`, `rt`, `alias`) VALUES (:lt, :rt, :alias);");
             $q->bindValue(':lt', 1, \PDO::PARAM_INT);
             $q->bindValue(':rt', 2, \PDO::PARAM_INT);
-            $q->bindValue(':alias', self::TREE_ROOT_ALIAS, \PDO::PARAM_STR);
+            $q->bindValue(':alias', static::TREE_ROOT_ALIAS, \PDO::PARAM_STR);
 
             $q->execute();
 
@@ -92,7 +90,7 @@ class Vines {
     }
 
     public function getVersion() {
-        return self::VERSION;
+        return static::VERSION;
     }
 
     public function addTreeNode($table, $alias, $parentAlias) {
@@ -155,7 +153,7 @@ class Vines {
     }
 
     public function removeTreeNode($table, $alias) {
-        if ($alias === self::TREE_ROOT_ALIAS) {
+        if ($alias === static::TREE_ROOT_ALIAS) {
             throw new \Exception("Root node of $table cannot be removed.");
         }
 
@@ -220,15 +218,15 @@ class Vines {
     }
 
     public function addResource($alias, $parentAlias) {
-        return $this->addTreeNode(self::RESOURCE_TABLE, $alias, $parentAlias);
+        return $this->addTreeNode(static::RESOURCE_TABLE, $alias, $parentAlias);
     }
 
     public function removeResource($alias) {
-        return $this->removeTreeNode(self::RESOURCE_TABLE, $alias);
+        return $this->removeTreeNode(static::RESOURCE_TABLE, $alias);
     }
 
     public function addTag($name) {
-        $q = $this->pdo->prepare("INSERT INTO `" . self::TAG_TABLE . "` (`name`) VALUES (:name)");
+        $q = $this->pdo->prepare("INSERT INTO `" . static::TAG_TABLE . "` (`name`) VALUES (:name)");
         $q->bindValue(':name', $name, \PDO::PARAM_STR);
 
         $q->execute();
@@ -243,7 +241,7 @@ class Vines {
     }
 
     public function removeTag($name) {
-        $q = $this->pdo->prepare("DELETE FROM `" . self::TAG_TABLE . "` WHERE `name` = :name");
+        $q = $this->pdo->prepare("DELETE FROM `" . static::TAG_TABLE . "` WHERE `name` = :name");
 
         $q->bindValue(':name', $name, \PDO::PARAM_STR);
 
@@ -263,7 +261,7 @@ class Vines {
     public function tagRole($role, $tags) {
         if (is_array($tags) && count($tags) > 0) {
             try {
-                $q = $this->pdo->prepare("SELECT `id` FROM `" . self::ROLE_TABLE . "` WHERE `alias`=:alias");
+                $q = $this->pdo->prepare("SELECT `id` FROM `" . static::ROLE_TABLE . "` WHERE `alias`=:alias");
                 $q->bindValue(':alias', $role, \PDO::PARAM_STR);
 
                 $q->execute();
@@ -279,7 +277,7 @@ class Vines {
 
                     foreach ($tags as $tag) {
                         try {
-                            $q = $this->pdo->prepare("SELECT `id` FROM `" . self::TAG_TABLE . "` WHERE `name`=:name");
+                            $q = $this->pdo->prepare("SELECT `id` FROM `" . static::TAG_TABLE . "` WHERE `name`=:name");
                             $q->bindValue(':name', $tag, \PDO::PARAM_STR);
 
                             $q->execute();
@@ -293,7 +291,7 @@ class Vines {
                             if ($q->rowCount() > 0) {
                                 $tagId = $q->fetch(\PDO::FETCH_COLUMN);
 
-                                $q = $this->pdo->prepare("INSERT INTO `" . self::ROLE_TAG_TABLE . "` (`role_id`, `tag_id`) VALUES (:role, :tag)");
+                                $q = $this->pdo->prepare("INSERT INTO `" . static::ROLE_TAG_TABLE . "` (`role_id`, `tag_id`) VALUES (:role, :tag)");
                                 $q->bindValue(':role', $roleId, \PDO::PARAM_INT);
                                 $q->bindValue(':tag', $tagId, \PDO::PARAM_INT);
 
@@ -328,7 +326,7 @@ class Vines {
         }
 
         try {
-            $q = $this->pdo->prepare("DELETE `role_tag` FROM `role_tag` INNER JOIN `" . self::ROLE_TABLE . "` AS `rol` ON `role_tag`.`role_id` = `rol`.`id` INNER JOIN `" . self::TAG_TABLE . "` AS `tag` ON `role_tag`.`tag_id` = `tag`.`id` WHERE `rol`.`alias` = :roleAlias AND `tag`.`name` IN ('" . join("','", $tags) . "')");
+            $q = $this->pdo->prepare("DELETE `role_tag` FROM `role_tag` INNER JOIN `" . static::ROLE_TABLE . "` AS `rol` ON `role_tag`.`role_id` = `rol`.`id` INNER JOIN `" . static::TAG_TABLE . "` AS `tag` ON `role_tag`.`tag_id` = `tag`.`id` WHERE `rol`.`alias` = :roleAlias AND `tag`.`name` IN ('" . join("','", $tags) . "')");
             $q->bindValue(':roleAlias', $role, \PDO::PARAM_STR);
 
             $q->execute();
@@ -346,11 +344,11 @@ class Vines {
     }
 
     public function addRole($alias, $related = null) {
-        if ($this->roleStructure == self::ROLE_STRUCT_FLAT_W_TAGS) {
+        if ($this->roleStructure == static::ROLE_STRUCT_FLAT_W_TAGS) {
             try {
                 $this->pdo->beginTransaction();
 
-                $q = $this->pdo->prepare("INSERT INTO `" . self::ROLE_TABLE . "` (`alias`) VALUES (:alias)");
+                $q = $this->pdo->prepare("INSERT INTO `" . static::ROLE_TABLE . "` (`alias`) VALUES (:alias)");
                 $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
 
                 $q->execute();
@@ -387,13 +385,13 @@ class Vines {
                 $related = array_shift($related);
             }
 
-            return $this->addTreeNode(self::ROLE_TABLE, $alias, $related);
+            return $this->addTreeNode(static::ROLE_TABLE, $alias, $related);
         }
     }
 
     public function removeRole($alias) {
-        if ($this->roleStructure == self::ROLE_STRUCT_FLAT_W_TAGS) {
-            $q = $this->pdo->prepare("DELETE FROM `" . self::ROLE_TABLE . "` WHERE `alias` = :alias");
+        if ($this->roleStructure == static::ROLE_STRUCT_FLAT_W_TAGS) {
+            $q = $this->pdo->prepare("DELETE FROM `" . static::ROLE_TABLE . "` WHERE `alias` = :alias");
 
             $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
 
@@ -409,12 +407,12 @@ class Vines {
 
             return true;
         } else {
-            return $this->removeTreeNode(self::ROLE_TABLE, $alias);
+            return $this->removeTreeNode(static::ROLE_TABLE, $alias);
         }
     }
 
     public function addAction($alias, $description, $flags = null) {
-        $q = $this->pdo->prepare("INSERT INTO `" . self::ACTION_TABLE . "` (`alias`, `description`) VALUES (:alias, :description)");
+        $q = $this->pdo->prepare("INSERT INTO `" . static::ACTION_TABLE . "` (`alias`, `description`) VALUES (:alias, :description)");
         $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
         $q->bindValue(':description', $description, \PDO::PARAM_STR);
 
@@ -430,7 +428,7 @@ class Vines {
     }
 
     public function editAction($alias, $description, $flags = null) {
-        $q = $this->pdo->prepare("UPDATE `" . self::ACTION_TABLE . "` SET `description`=:description WHERE `alias`=:alias");
+        $q = $this->pdo->prepare("UPDATE `" . static::ACTION_TABLE . "` SET `description`=:description WHERE `alias`=:alias");
         $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
         $q->bindValue(':description', $description, \PDO::PARAM_STR);
 
@@ -450,7 +448,7 @@ class Vines {
     }
 
     public function removeAction($alias) {
-        $q = $this->pdo->prepare("DELETE FROM `" . self::ACTION_TABLE . "` WHERE `alias` = :alias");
+        $q = $this->pdo->prepare("DELETE FROM `" . static::ACTION_TABLE . "` WHERE `alias` = :alias");
 
         $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
 
@@ -476,7 +474,7 @@ class Vines {
      * Enforce 'denial' of 'write' by 'admin' to 'high-profile-client-data'
      */
     public function enforce($allowed, $action, $role, $resource) {
-        $q = $this->pdo->prepare("SELECT `id` FROM `" . self::ACTION_TABLE . "` WHERE `alias`=:alias");
+        $q = $this->pdo->prepare("SELECT `id` FROM `" . static::ACTION_TABLE . "` WHERE `alias`=:alias");
         $q->bindValue(':alias', $action, \PDO::PARAM_STR);
 
         $q->execute();
@@ -491,7 +489,7 @@ class Vines {
 
         $actionId = $q->fetch(\PDO::FETCH_COLUMN);
 
-        $q = $this->pdo->prepare("SELECT `id` FROM `" . self::ROLE_TABLE . "` WHERE `alias`=:alias");
+        $q = $this->pdo->prepare("SELECT `id` FROM `" . static::ROLE_TABLE . "` WHERE `alias`=:alias");
         $q->bindValue(':alias', $role, \PDO::PARAM_STR);
 
         $q->execute();
@@ -506,7 +504,7 @@ class Vines {
 
         $roleId = $q->fetch(\PDO::FETCH_COLUMN);
 
-        $q = $this->pdo->prepare("SELECT `id` FROM `" . self::RESOURCE_TABLE . "` WHERE `alias`=:alias");
+        $q = $this->pdo->prepare("SELECT `id` FROM `" . static::RESOURCE_TABLE . "` WHERE `alias`=:alias");
         $q->bindValue(':alias', $resource, \PDO::PARAM_STR);
 
         $q->execute();
@@ -521,7 +519,7 @@ class Vines {
 
         $resourceId = $q->fetch(\PDO::FETCH_COLUMN);
 
-        $q = $this->pdo->prepare("INSERT INTO `" . self::CONTROL_TABLE . "` (`role_id`, `action_id`, `resource_id`, `allowed`) VALUES (:roleId, :actionId, :resourceId, :allowed)");
+        $q = $this->pdo->prepare("INSERT INTO `" . static::CONTROL_TABLE . "` (`role_id`, `action_id`, `resource_id`, `allowed`) VALUES (:roleId, :actionId, :resourceId, :allowed)");
         $q->bindValue(':roleId', $roleId, \PDO::PARAM_INT);
         $q->bindValue(':actionId', $actionId, \PDO::PARAM_INT);
         $q->bindValue(':resourceId', $resourceId, \PDO::PARAM_INT);
@@ -539,7 +537,7 @@ class Vines {
     }
 
     public function enforceTag($allowed, $action, $tag, $resource) {
-        $q = $this->pdo->prepare("SELECT `id` FROM `" . self::ACTION_TABLE . "` WHERE `alias`=:alias");
+        $q = $this->pdo->prepare("SELECT `id` FROM `" . static::ACTION_TABLE . "` WHERE `alias`=:alias");
         $q->bindValue(':alias', $action, \PDO::PARAM_STR);
 
         $q->execute();
@@ -554,7 +552,7 @@ class Vines {
 
         $actionId = $q->fetch(\PDO::FETCH_COLUMN);
 
-        $q = $this->pdo->prepare("SELECT `id` FROM `" . self::TAG_TABLE . "` WHERE `name`=:name");
+        $q = $this->pdo->prepare("SELECT `id` FROM `" . static::TAG_TABLE . "` WHERE `name`=:name");
         $q->bindValue(':name', $tag, \PDO::PARAM_STR);
 
         $q->execute();
@@ -569,7 +567,7 @@ class Vines {
 
         $tagId = $q->fetch(\PDO::FETCH_COLUMN);
 
-        $q = $this->pdo->prepare("SELECT `id` FROM `" . self::RESOURCE_TABLE . "` WHERE `alias`=:alias");
+        $q = $this->pdo->prepare("SELECT `id` FROM `" . static::RESOURCE_TABLE . "` WHERE `alias`=:alias");
         $q->bindValue(':alias', $resource, \PDO::PARAM_STR);
 
         $q->execute();
@@ -584,7 +582,7 @@ class Vines {
 
         $resourceId = $q->fetch(\PDO::FETCH_COLUMN);
 
-        $q = $this->pdo->prepare("INSERT INTO `" . self::TCONTROL_TABLE . "` (`tag_id`, `action_id`, `resource_id`, `allowed`) VALUES (:tagId, :actionId, :resourceId, :allowed)");
+        $q = $this->pdo->prepare("INSERT INTO `" . static::TCONTROL_TABLE . "` (`tag_id`, `action_id`, `resource_id`, `allowed`) VALUES (:tagId, :actionId, :resourceId, :allowed)");
         $q->bindValue(':tagId', $tagId, \PDO::PARAM_INT);
         $q->bindValue(':actionId', $actionId, \PDO::PARAM_INT);
         $q->bindValue(':resourceId', $resourceId, \PDO::PARAM_INT);
@@ -605,15 +603,15 @@ class Vines {
         $allowed = false; // assume denied.
         $controls = array();
 
-        if ($this->roleStructure == self::ROLE_STRUCT_FLAT_W_TAGS) {
+        if ($this->roleStructure == static::ROLE_STRUCT_FLAT_W_TAGS) {
             $byTag = false;
             $byRole = false;
 
             $q = $this->pdo->prepare("SELECT `res_anc`.`rt` AS `right`, `res_anc`.`alias` AS `resource`, `act`.`alias` AS `action`, `rol`.`alias` AS `role`, `con`.`allowed` AS `access` " .
-                    "FROM `" . self::RESOURCE_TABLE . "` AS `res` JOIN `" . self::RESOURCE_TABLE . "` as `res_anc` ON `res`.`lt` BETWEEN `res_anc`.`lt` AND `res_anc`.`rt` " .
-                    "LEFT JOIN `" . self::CONTROL_TABLE . "` as `con` ON `con`.`resource_id` = `res_anc`.`id` " .
-                    "LEFT JOIN `" . self::ACTION_TABLE . "` AS `act` ON `act`.`id` = `con`.`action_id` " .
-                    "LEFT JOIN `" . self::ROLE_TABLE . "` AS `rol` ON `con`.`role_id` = `rol`.`id` " .
+                    "FROM `" . static::RESOURCE_TABLE . "` AS `res` JOIN `" . static::RESOURCE_TABLE . "` as `res_anc` ON `res`.`lt` BETWEEN `res_anc`.`lt` AND `res_anc`.`rt` " .
+                    "LEFT JOIN `" . static::CONTROL_TABLE . "` as `con` ON `con`.`resource_id` = `res_anc`.`id` " .
+                    "LEFT JOIN `" . static::ACTION_TABLE . "` AS `act` ON `act`.`id` = `con`.`action_id` " .
+                    "LEFT JOIN `" . static::ROLE_TABLE . "` AS `rol` ON `con`.`role_id` = `rol`.`id` " .
                     "WHERE `res`.`alias` = :resource AND `act`.`alias` = :action AND `rol`.`alias` = :role " .
                     "ORDER BY `res_anc`.`rt` DESC");
 
@@ -635,12 +633,12 @@ class Vines {
             }
 
             $q = $this->pdo->prepare("SELECT `res_anc`.`rt` AS `right`, `res_anc`.`alias` AS `resource`, `act`.`alias` AS `action`, `tag`.`name` AS `tag`, `con`.`allowed` AS `access` " .
-                    "FROM `" . self::RESOURCE_TABLE . "` AS `res` JOIN `" . self::RESOURCE_TABLE . "` as `res_anc` ON `res`.`lt` BETWEEN `res_anc`.`lt` AND `res_anc`.`rt` " .
-                    "LEFT JOIN `" . self::TCONTROL_TABLE . "` as `con` ON `con`.`resource_id` = `res_anc`.`id` " .
-                    "LEFT JOIN `" . self::ACTION_TABLE . "` AS `act` ON `act`.`id` = `con`.`action_id` " .
-                    "LEFT JOIN `" . self::TAG_TABLE . "` AS `tag` ON `con`.`tag_id` = `tag`.`id` " .
+                    "FROM `" . static::RESOURCE_TABLE . "` AS `res` JOIN `" . static::RESOURCE_TABLE . "` as `res_anc` ON `res`.`lt` BETWEEN `res_anc`.`lt` AND `res_anc`.`rt` " .
+                    "LEFT JOIN `" . static::TCONTROL_TABLE . "` as `con` ON `con`.`resource_id` = `res_anc`.`id` " .
+                    "LEFT JOIN `" . static::ACTION_TABLE . "` AS `act` ON `act`.`id` = `con`.`action_id` " .
+                    "LEFT JOIN `" . static::TAG_TABLE . "` AS `tag` ON `con`.`tag_id` = `tag`.`id` " .
                     "WHERE `res`.`alias` = :resource AND `act`.`alias` = :action AND `tag`.`id` IN (" .
-                    "SELECT `tag_sub`.`id` AS `id` FROM `" . self::ROLE_TAG_TABLE . "` AS `rtag_sub` INNER JOIN `" . self::ROLE_TABLE . "` AS `rol_sub` ON `rtag_sub`.`role_id` = `rol_sub`.`id` INNER JOIN `" . self::TAG_TABLE . "` AS `tag_sub` ON `rtag_sub`.`tag_id` = `tag_sub`.`id`  WHERE `rol_sub`.`alias`=:role" .
+                    "SELECT `tag_sub`.`id` AS `id` FROM `" . static::ROLE_TAG_TABLE . "` AS `rtag_sub` INNER JOIN `" . static::ROLE_TABLE . "` AS `rol_sub` ON `rtag_sub`.`role_id` = `rol_sub`.`id` INNER JOIN `" . static::TAG_TABLE . "` AS `tag_sub` ON `rtag_sub`.`tag_id` = `tag_sub`.`id`  WHERE `rol_sub`.`alias`=:role" .
                     ") " .
                     "ORDER BY `res_anc`.`rt` DESC;");
 
@@ -663,26 +661,26 @@ class Vines {
 
             if ($byTag && $byRole) {
                 usort($controls, function($a, $b) {
-                            if ($a['right'] == $b['right']) {
-                                if ($a['access'] == $b['access']) {
-                                    return 0;
-                                }
+                    if ($a['right'] == $b['right']) {
+                        if ($a['access'] == $b['access']) {
+                            return 0;
+                        }
 
-                                return ($a['access'] ? -1 : 1);
-                            }
-                            return ($a['right'] < $b['right']) ? 1 : -1;
-                        });
+                        return ($a['access'] ? -1 : 1);
+                    }
+                    return ($a['right'] < $b['right']) ? 1 : -1;
+                });
             }
         } else {
             $q = $this->pdo->prepare("SELECT `res_anc`.`alias` AS `resource`, `act`.`alias` AS `action`, `rol`.`alias` AS `role`, `con`.`allowed` AS `access` 
-                FROM `" . self::RESOURCE_TABLE . "` AS `res` JOIN `" . self::RESOURCE_TABLE . "` as `res_anc` ON `res`.`lt` BETWEEN `res_anc`.`lt` AND `res_anc`.`rt` 
-                LEFT JOIN `" . self::CONTROL_TABLE . "` as `con` ON `con`.`resource_id` = `res_anc`.`id` 
-                LEFT JOIN `" . self::ACTION_TABLE . "` AS `act` ON `act`.`id` = `con`.`action_id` 
-                LEFT JOIN `" . self::ROLE_TABLE . "` AS `rol` ON `con`.`role_id` = `rol`.`id` 
+                FROM `" . static::RESOURCE_TABLE . "` AS `res` JOIN `" . static::RESOURCE_TABLE . "` as `res_anc` ON `res`.`lt` BETWEEN `res_anc`.`lt` AND `res_anc`.`rt` 
+                LEFT JOIN `" . static::CONTROL_TABLE . "` as `con` ON `con`.`resource_id` = `res_anc`.`id` 
+                LEFT JOIN `" . static::ACTION_TABLE . "` AS `act` ON `act`.`id` = `con`.`action_id` 
+                LEFT JOIN `" . static::ROLE_TABLE . "` AS `rol` ON `con`.`role_id` = `rol`.`id` 
                 WHERE `res`.`alias` = :resource AND `act`.`alias` = :action AND `rol`.`id` IN 
                 (
                 SELECT `rol_anc_sub`.`id` AS `id`
-                FROM `" . self::ROLE_TABLE . "` AS `rol_sub` JOIN `" . self::ROLE_TABLE . "` as `rol_anc_sub` ON `rol_sub`.`lt` BETWEEN `rol_anc_sub`.`lt` AND `rol_anc_sub`.`rt` 
+                FROM `" . static::ROLE_TABLE . "` AS `rol_sub` JOIN `" . static::ROLE_TABLE . "` as `rol_anc_sub` ON `rol_sub`.`lt` BETWEEN `rol_anc_sub`.`lt` AND `rol_anc_sub`.`rt` 
                 WHERE `rol_sub`.`alias` = :role 
                 ORDER BY `rol_anc_sub`.`rt` DESC
                 )
@@ -718,8 +716,8 @@ class Vines {
      * @throws \PDOException
      */
     public function purgeDatabase() {
-        $q = $this->pdo->query("DELETE FROM `" . self::CONTROL_TABLE . "`; DELETE FROM `" . self::TCONTROL_TABLE . "`; DELETE FROM `" . self::ROLE_TAG_TABLE . "`; DELETE FROM `" . self::ROLE_TABLE . "`; DELETE FROM `" . self::RESOURCE_TABLE . "`; DELETE FROM `" . self::ACTION_TABLE . "`; DELETE FROM `" . self::TAG_TABLE . "`;" .
-                "ALTER TABLE `" . self::ROLE_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . self::RESOURCE_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . self::ACTION_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . self::TAG_TABLE . "` AUTO_INCREMENT = 1;");
+        $q = $this->pdo->query("DELETE FROM `" . static::CONTROL_TABLE . "`; DELETE FROM `" . static::TCONTROL_TABLE . "`; DELETE FROM `" . static::ROLE_TAG_TABLE . "`; DELETE FROM `" . static::ROLE_TABLE . "`; DELETE FROM `" . static::RESOURCE_TABLE . "`; DELETE FROM `" . static::ACTION_TABLE . "`; DELETE FROM `" . static::TAG_TABLE . "`;" .
+                "ALTER TABLE `" . static::ROLE_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . static::RESOURCE_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . static::ACTION_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . static::TAG_TABLE . "` AUTO_INCREMENT = 1;");
 
         $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
 

@@ -1,0 +1,6 @@
+{
+    "name": "color-anomaly/vines",
+    "require": {
+        "php": ">=5.3.0"
+    }
+}
