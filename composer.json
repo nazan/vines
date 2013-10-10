@@ -17,7 +17,7 @@
         "psr-0": { "ColorAnomaly": "./src" }
     },
     "scripts": {
-        "post-package-update": "ColorAnomaly\\Vines::showSetupInfo",
-        "post-package-install": "ColorAnomaly\\Vines::showSetupInfo"
+        "post-update-cmd": "ColorAnomaly\\Vines::showSetupInfo",
+        "post-install-cmd": "ColorAnomaly\\Vines::showSetupInfo"
     }
 }

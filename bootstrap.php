@@ -47,7 +47,4 @@ function nestConfig($config) {
     return $a;
 }
 
-
-spl_autoload_register(function ($name) {
-    require_once 'src/' . trim(str_replace('\\', '/', $name) , "\t\r\n \\") . '.php';
-});
+require_once 'vendor/autoload.php';
