@@ -14,6 +14,8 @@
 
 namespace ColorAnomaly;
 
+use Composer\Script\Event;
+
 class Vines {
 
     const VERSION = '1.0.0';
@@ -30,6 +32,20 @@ class Vines {
 
     protected $pdo;
     protected $roleStructure;
+    
+    public static function showSetupInfo(Event $event)
+    {
+        $io = $event->getIO();
+        
+        $io->write(array(
+            "Vines Setup",
+            "-------------",
+            "Create database for vines using the schema file vines_schema.sql.",
+            "Schema file is located under config directory of vines source package."
+        ));
+        
+        return;
+    }
 
     public function __construct($pdoConfig, $roleStructure = null) {
         //echo "Constructing Vines main class." . PHP_EOL;
