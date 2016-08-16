@@ -8,9 +8,11 @@ In short, this program keeps track of who is permitted to perform what actions o
 
 Clone this repo.
 
+```
 > git clone git@bitbucket.org:surfingcrab/vines.git
 > cd vines
 > composer install
+```
 
 Create database and generate the schema by importing the 'vines_schema.sql' file under 'config' directory.
 Use a database administration tool like PhpMyAdmin to do this.
