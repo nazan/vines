@@ -21,4 +21,6 @@ Once database created then make a copy of 'settings.example.ini' and rename it t
 
 Make sure PHPUnit is setup properly in your development environment and run the following command. [Install PHPUnit](https://phpunit.de/manual/4.8/en/installation.html)
 
+```
 > phpunit -c tests/configuration.xml tests
+```
