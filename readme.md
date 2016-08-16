@@ -15,4 +15,8 @@ Clone this repo.
 Create database and generate the schema by importing the 'vines_schema.sql' file under 'config' directory.
 Use a database administration tool like PhpMyAdmin to do this.
 
-One database created then make a copy of 'settings.example.ini' and rename it to 'settings.ini' in the same path. Change the parameters within 'settings.ini' so that it matches with the connection details to the database that was created in the previous step.
+Once database created then make a copy of 'settings.example.ini' and rename it to 'settings.ini' in the same path. Change the parameters within 'settings.ini' so that it matches with the connection details to the database that was created in the previous step.
+
+Make sure PHPUnit is setup properly in your development environment and run the following command. [Install PHPUnit](https://phpunit.de/manual/4.8/en/installation.html)
+
+> phpunit -c tests/configuration.xml tests
