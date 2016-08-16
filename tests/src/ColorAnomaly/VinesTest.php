@@ -37,6 +37,10 @@ class VinesTest extends \PHPUnit_Framework_TestCase {
         $this->o->addRole('teacher');
         $this->o->addRole('student');
 
+        $this->o->addTag('staff');
+        $this->o->tagRole('principal', ['staff']);
+        $this->o->tagRole('teacher', ['staff']);
+
         $this->o->addResource('school', Vines::TREE_ROOT_ALIAS);
         $this->o->addResource('north-wing', 'school');
         $this->o->addResource('south-wing', 'school');
@@ -44,15 +48,54 @@ class VinesTest extends \PHPUnit_Framework_TestCase {
         $this->o->addResource('class2', 'south-wing');
         $this->o->addResource('class3', 'south-wing');
         $this->o->addResource('office', 'school');
-        $this->o->addResource('principal-office', 'office');
+        $this->o->addResource('principal-office', 'school');
 
         $this->o->enforce(true, 'enter', 'teacher', 'south-wing');
         $this->o->enforce(true, 'enter', 'student', 'north-wing');
+        $this->o->enforce(true, 'enter', 'student', 'north-wing');
+        $this->o->enforce(true, 'enter', 'principal', 'principal-office');
+
+        $this->o->enforceTag(true, 'enter', 'staff', 'office');
 
         $this->assertFalse($this->o->allowed('teacher', 'enter', 'class1'));
         $this->assertTrue($this->o->allowed('teacher', 'enter', 'class2'));
         $this->assertTrue($this->o->allowed('teacher', 'enter', 'class3'));
         $this->assertTrue($this->o->allowed('student', 'enter', 'class1'));
+
+        $this->assertFalse($this->o->allowed('student', 'enter', 'office'));
+        $this->assertTrue($this->o->allowed('teacher', 'enter', 'office'));
+        $this->assertTrue($this->o->allowed('principal', 'enter', 'office'));
+
+        $this->assertFalse($this->o->allowed('student', 'enter', 'principal-office'));
+        $this->assertFalse($this->o->allowed('teacher', 'enter', 'principal-office'));
+        $this->assertTrue($this->o->allowed('principal', 'enter', 'principal-office'));
+    }
+
+    public function testEnforceFalse() {
+        $this->o->addAction('enter', '');
+
+        $this->o->addRole('principal');
+        $this->o->addRole('teacher');
+        $this->o->addRole('student');
+
+        $this->o->addTag('staff');
+        $this->o->tagRole('principal', ['staff']);
+        $this->o->tagRole('teacher', ['staff']);
+
+        $this->o->addResource('school', Vines::TREE_ROOT_ALIAS);
+        $this->o->addResource('office', 'school');
+        $this->o->addResource('principal-office', 'office');
+
+        $this->o->enforceTag(true, 'enter', 'staff', 'office');
+        $this->o->enforce(false, 'enter', 'teacher', 'principal-office');
+
+        $this->assertFalse($this->o->allowed('student', 'enter', 'office'));
+        $this->assertTrue($this->o->allowed('teacher', 'enter', 'office'));
+        $this->assertTrue($this->o->allowed('principal', 'enter', 'office'));
+
+        $this->assertFalse($this->o->allowed('student', 'enter', 'principal-office'));
+        $this->assertFalse($this->o->allowed('teacher', 'enter', 'principal-office'));
+        $this->assertTrue($this->o->allowed('principal', 'enter', 'principal-office'));
     }
 
 }
