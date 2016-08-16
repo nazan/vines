@@ -17,7 +17,7 @@ class VinesTest extends \PHPUnit_Framework_TestCase {
      * This method is called before a test is executed.
      */
     protected function setUp() {
-        $config = nestConfig(cascadeConfig(APPLICATION_ENV, parse_ini_file(APPLICATION_PATH . '/config/settings.ini', true)));
+        $config = \nestConfig(\cascadeConfig(APPLICATION_ENV, parse_ini_file(APPLICATION_PATH . '/config/settings.ini', true)));
 
         $this->o = new Vines($config['app']['db']);
     }
