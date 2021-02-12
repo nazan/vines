@@ -19,5 +19,6 @@
     "scripts": {
         "post-update-cmd": "ColorAnomaly\\Vines::showSetupInfo",
         "post-install-cmd": "ColorAnomaly\\Vines::showSetupInfo"
-    }
+    },
+    "license": "MIT"
 }
