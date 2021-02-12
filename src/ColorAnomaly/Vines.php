@@ -94,7 +94,9 @@ class Vines {
         }
 
         if ($q->rowCount() == 0) {
-            $q = $this->pdo->prepare("DELETE FROM `$table`; INSERT INTO `$table` (`lt`, `rt`, `alias`) VALUES (:lt, :rt, :alias);");
+            $this->resetTables([$table], true);
+
+            $q = $this->pdo->prepare("INSERT INTO `$table` (`lt`, `rt`, `alias`) VALUES (:lt, :rt, :alias);");
             $q->bindValue(':lt', 1, \PDO::PARAM_INT);
             $q->bindValue(':rt', 2, \PDO::PARAM_INT);
             $q->bindValue(':alias', static::TREE_ROOT_ALIAS, \PDO::PARAM_STR);
@@ -109,6 +111,26 @@ class Vines {
         }
 
         return true;
+    }
+
+    public function resetTables($list, $resetAutoIncrement = false) {
+        foreach($list as $table) {
+            $q = $this->pdo->query("DELETE FROM `$table`;");
+            $this->checkPdoResult($q);
+
+            if($resetAutoIncrement) {
+                $q = $this->pdo->query("ALTER TABLE `$table` AUTO_INCREMENT = 1;");
+                $this->checkPdoResult($q);
+            }
+        }
+    }
+
+    private function checkPdoResult($result) {
+        $err = ($result !== false ? $result->errorInfo() : $this->pdo->errorInfo());
+    
+        if ($err[0] !== '00000') {
+            throw new \PDOException("Unable to delete $table rows. ERROR: " . $err[2]);
+        }
     }
 
     public function getVersion() {
@@ -738,14 +760,8 @@ class Vines {
      * @throws \PDOException
      */
     public function purgeDatabase() {
-        $q = $this->pdo->query("DELETE FROM `" . static::CONTROL_TABLE . "`; DELETE FROM `" . static::TCONTROL_TABLE . "`; DELETE FROM `" . static::ROLE_TAG_TABLE . "`; DELETE FROM `" . static::ROLE_TABLE . "`; DELETE FROM `" . static::RESOURCE_TABLE . "`; DELETE FROM `" . static::ACTION_TABLE . "`; DELETE FROM `" . static::TAG_TABLE . "`;" .
-                "ALTER TABLE `" . static::ROLE_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . static::RESOURCE_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . static::ACTION_TABLE . "` AUTO_INCREMENT = 1; ALTER TABLE `" . static::TAG_TABLE . "` AUTO_INCREMENT = 1;");
-
-        $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
-
-        if ($err[0] !== '00000') {
-            throw new \PDOException("Unable to reset all data tables. ERROR: " . $err[2]);
-        }
+        $this->resetTables([static::CONTROL_TABLE, static::TCONTROL_TABLE, static::ROLE_TAG_TABLE]);
+        $this->resetTables([static::ROLE_TABLE, static::RESOURCE_TABLE, static::ACTION_TABLE, static::TAG_TABLE], true);
 
         return true;
     }
