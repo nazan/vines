@@ -745,4 +745,15 @@ class Vines {
         return true;
     }
 
+    public function migrateUp() {
+        $sql = file_get_contents('../../config/vines_schema.sql');
+
+        $result = $this->pdo->exec($sql);
+    }
+
+    public function migrateDown() {
+        $sql = file_get_contents('../../config/vines_schema_down.sql');
+
+        $result = $this->pdo->exec($sql);
+    }
 }
