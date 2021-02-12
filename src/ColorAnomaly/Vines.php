@@ -58,8 +58,9 @@ class Vines {
                 in_array($roleStructure, array(static::ROLE_STRUCT_HIER, static::ROLE_STRUCT_FLAT_W_TAGS))
                 ) ? $roleStructure : static::ROLE_STRUCT_FLAT_W_TAGS
                 );
+    }
 
-
+    public function prepareTrees() {
         $this->checkTreeStructure(static::RESOURCE_TABLE);
 
         if ($this->roleStructure == static::ROLE_STRUCT_FLAT_W_TAGS) {

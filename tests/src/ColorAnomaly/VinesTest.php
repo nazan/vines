@@ -20,6 +20,7 @@ class VinesTest extends \PHPUnit_Framework_TestCase {
         $config = \nestConfig(\cascadeConfig(APPLICATION_ENV, parse_ini_file(APPLICATION_PATH . '/config/settings.ini', true)));
 
         $this->o = new Vines($config['app']['db']);
+        $this->o->prepareTrees();
     }
 
     /**
