@@ -50,7 +50,12 @@ class Vines {
     public function __construct($pdoConfig, $roleStructure = null) {
         //echo "Constructing Vines main class." . PHP_EOL;
 
-        $this->pdo = new \PDO("mysql:host={$pdoConfig['host']};dbname={$pdoConfig['dbname']}", $pdoConfig['username'], $pdoConfig['password']);
+        if($pdoConfig instanceof \PDO) {
+            $this->pdo = $pdoConfig;
+        } else {
+            $this->pdo = new \PDO("mysql:host={$pdoConfig['host']};dbname={$pdoConfig['dbname']}", $pdoConfig['username'], $pdoConfig['password']);
+        }
+
 
         $this->roleStructure = (
                 (
