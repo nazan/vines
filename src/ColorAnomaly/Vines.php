@@ -751,13 +751,13 @@ class Vines {
     }
 
     public function migrateUp() {
-        $sql = file_get_contents('../../config/vines_schema.sql');
+        $sql = file_get_contents(__DIR__ . '../../config/vines_schema.sql');
 
         $result = $this->pdo->exec($sql);
     }
 
     public function migrateDown() {
-        $sql = file_get_contents('../../config/vines_schema_down.sql');
+        $sql = file_get_contents(__DIR__ . '../../config/vines_schema_down.sql');
 
         $result = $this->pdo->exec($sql);
     }
