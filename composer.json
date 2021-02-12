@@ -14,7 +14,7 @@
         "php": ">=5.3.0"
     },
     "autoload": {
-        "psr-0": { "ColorAnomaly\\Vines": "./src" }
+        "psr-4": { "ColorAnomaly\\Vines\\": "./src/" }
     },
     "scripts": {
         "post-update-cmd": "ColorAnomaly\\Vines::showSetupInfo",
