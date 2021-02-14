@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS `resource` (
   `lt` int(10) unsigned NOT NULL,
   `rt` int(10) unsigned NOT NULL,
   `alias` varchar(255) NOT NULL,
+  `description` varchar(255) NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `alias` (`alias`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS `role` (
   `lt` int(10) unsigned DEFAULT NULL,
   `rt` int(10) unsigned DEFAULT NULL,
   `alias` varchar(255) NOT NULL,
+  `description` varchar(255) NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `alias` (`alias`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;

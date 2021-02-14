@@ -115,21 +115,21 @@ class Vines {
 
     public function resetTables($list, $resetAutoIncrement = false) {
         foreach($list as $table) {
-            $q = $this->pdo->query("DELETE FROM `$table`;");
-            $this->checkPdoResult($q);
+            $r = $this->pdo->query("DELETE FROM `$table`;");
+            $this->checkPdoResult($r, "Unable to delete $table rows. ERROR: ");
 
             if($resetAutoIncrement) {
-                $q = $this->pdo->query("ALTER TABLE `$table` AUTO_INCREMENT = 1;");
-                $this->checkPdoResult($q);
+                $r = $this->pdo->query("ALTER TABLE `$table` AUTO_INCREMENT = 1;");
+                $this->checkPdoResult($r, "Unable to alter $table table. ERROR: ");
             }
         }
     }
 
-    private function checkPdoResult($result) {
+    private function checkPdoResult($result, $msg) {
         $err = ($result !== false ? $result->errorInfo() : $this->pdo->errorInfo());
     
         if ($err[0] !== '00000') {
-            throw new \PDOException("Unable to delete $table rows. ERROR: " . $err[2]);
+            throw new \PDOException($msg . $err[2]);
         }
     }
 
@@ -137,7 +137,7 @@ class Vines {
         return static::VERSION;
     }
 
-    public function addTreeNode($table, $alias, $parentAlias) {
+    public function addTreeNode($table, $alias, $parentAlias, $description = null) {
         try {
             $this->pdo->beginTransaction();
             $q = $this->pdo->prepare("SELECT * FROM `$table` WHERE `alias`=:alias");
@@ -172,10 +172,11 @@ class Vines {
                     throw new \PDOException("Recalculation of left/right values failed for $table while adding a new node. ERROR: " . $err[2]);
                 }
 
-                $q = $this->pdo->prepare("INSERT INTO `$table` (`lt`, `rt`, `alias`) VALUES (:lt, :rt, :alias)");
+                $q = $this->pdo->prepare("INSERT INTO `$table` (`lt`, `rt`, `alias`, `description`) VALUES (:lt, :rt, :alias, :description)");
                 $q->bindValue(':lt', $newLt, \PDO::PARAM_INT);
                 $q->bindValue(':rt', $newRt, \PDO::PARAM_INT);
                 $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
+                $q->bindValue(':description', is_null($description) ? null : $description, is_null($description) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
 
                 $q->execute();
 
@@ -261,8 +262,8 @@ class Vines {
         }
     }
 
-    public function addResource($alias, $parentAlias) {
-        return $this->addTreeNode(static::RESOURCE_TABLE, $alias, $parentAlias);
+    public function addResource($alias, $parentAlias, $description = null) {
+        return $this->addTreeNode(static::RESOURCE_TABLE, $alias, $parentAlias, $description);
     }
 
     public function removeResource($alias) {
@@ -387,13 +388,14 @@ class Vines {
         return true;
     }
 
-    public function addRole($alias, $related = null) {
+    public function addRole($alias, $related = null, $description = null) {
         if ($this->roleStructure == static::ROLE_STRUCT_FLAT_W_TAGS) {
             try {
                 $this->pdo->beginTransaction();
 
-                $q = $this->pdo->prepare("INSERT INTO `" . static::ROLE_TABLE . "` (`alias`) VALUES (:alias)");
+                $q = $this->pdo->prepare("INSERT INTO `" . static::ROLE_TABLE . "` (`alias`, `description`) VALUES (:alias, :description)");
                 $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
+                $q->bindValue(':description', is_null($description) ? null : $description, is_null($description) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
 
                 $q->execute();
 
