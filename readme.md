@@ -1,6 +1,6 @@
 # Vines
 
-## What It Does
+## What It Does - Overview
 
 In short, this program keeps track of who is permitted to perform what actions on which resources. Of course, whatever resources, actors or actions in your particular problem domain must be input into Vines before it can do its magic. Resources are stored in Vines as a hierarchy.
 
