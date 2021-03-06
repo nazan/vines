@@ -1,7 +1,7 @@
-DROP TABLE `control`;
-DROP TABLE `tcontrol`;
-DROP TABLE `role_tag`;
-DROP TABLE `action`;
-DROP TABLE `resource`;
-DROP TABLE `role`;
-DROP TABLE `tag`;
+DROP TABLE IF EXISTS `control`;
+DROP TABLE IF EXISTS `tcontrol`;
+DROP TABLE IF EXISTS `role_tag`;
+DROP TABLE IF EXISTS `action`;
+DROP TABLE IF EXISTS `resource`;
+DROP TABLE IF EXISTS `role`;
+DROP TABLE IF EXISTS `tag`;
