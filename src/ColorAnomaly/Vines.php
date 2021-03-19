@@ -993,7 +993,7 @@ class Vines {
 
         $targetNode = $this->getTargetResourceNode($targetNodeAlias);
 
-        if(count($includePrefixes) === 0) {
+        if(!is_null($pageSize) && count($includePrefixes) === 0) {
             return [0, []];
         }
 
