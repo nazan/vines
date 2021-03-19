@@ -986,7 +986,7 @@ class Vines {
         }, $rows);
     }
 
-    public function getNodeDescendents($targetNodeAlias, $includePrefixes, $conditions, $pageSize, $page) {
+    public function getNodeDescendents($targetNodeAlias, $includePrefixes, $conditions, $pageSize = null, $page = null) {
         if(is_null($targetNodeAlias)) {
             $targetNodeAlias = static::TREE_ROOT_ALIAS;
         }
@@ -1008,29 +1008,32 @@ class Vines {
 
         $conditionsStr = count($conditions) > 0 ? ' AND (' . implode(' OR ', array_map(function($condition) { return "`{$condition[0]}` {$condition[1]} ?"; }, $conditions)) . ')' : '';
 
-        $queryStr = "SELECT COUNT(*) FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixesStr}{$conditionsStr} ORDER BY `id` ASC;";
-
-        $q = $this->pdo->prepare($queryStr);
-
-        $q->execute($queryParams);
-
-        $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
-
-        if ($err[0] !== '00000') {
-            throw new \PDOException("Failed to retrieve count of total number of resources under given node. ERROR: " . $err[2]);
-        }
-
-        if ($q->rowCount() === 0) {
-            return [0, []];
+        if(!is_null($pageSize)) {
+            $queryStr = "SELECT COUNT(*) FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixesStr}{$conditionsStr} ORDER BY `id` ASC;";
+    
+            $q = $this->pdo->prepare($queryStr);
+    
+            $q->execute($queryParams);
+    
+            $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
+    
+            if ($err[0] !== '00000') {
+                throw new \PDOException("Failed to retrieve count of total number of resources under given node. ERROR: " . $err[2]);
+            }
+    
+            if ($q->rowCount() === 0) {
+                return [0, []];
+            }
+            
+            $totalRowCount = $q->fetch(\PDO::FETCH_COLUMN);
+            $offset = $pageSize * ($page - 1);
+            $limitClause =  " LIMIT $offset, $pageSize";
+        } else {
+            $totalRowCount = null;
+            $limitClause = '';
         }
         
-        $totalRowCount = $q->fetch(\PDO::FETCH_COLUMN);
-
-        $offset = $pageSize * ($page - 1);
-
-        $queryStr = "SELECT `id`, `lt`, `rt`, `alias`, `description` FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixesStr}{$conditionsStr} ORDER BY `id` ASC LIMIT $offset, $pageSize;";
-        
-        //dd($queryStr, $queryParams);
+        $queryStr = "SELECT `id`, `lt`, `rt`, `alias`, `description` FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixesStr}{$conditionsStr} ORDER BY `id` ASC{$limitClause};";
     
         // Now, retrieve all descendants of the target node.
         $q = $this->pdo->prepare($queryStr);
@@ -1042,10 +1045,12 @@ class Vines {
         if ($err[0] !== '00000') {
             throw new \PDOException("Failed to retrieve descendents of target resource node while trying to fetch descendents. ERROR: " . $err[2]);
         }
-    
-        return [$totalRowCount, array_map(function($row) {
+
+        $rows = array_map(function($row) {
             return $row['alias'];
-        }, $q->fetchAll(\PDO::FETCH_ASSOC))];
+        }, $q->fetchAll(\PDO::FETCH_ASSOC));
+    
+        return [!is_null($totalRowCount) ? $totalRowCount : count($rows), $rows];
     }
 
     public function getControls($resource) {
