@@ -999,11 +999,16 @@ class Vines {
 
         $queryParams = array_merge([$targetNode['lt'], $targetNode['rt']], array_map(function($rec) { return trim($rec) . '%'; }, $includePrefixes), array_map(function($condition) { return $condition[2]; }, $conditions));
 
-        $includePrefixes = " AND " . implode(' AND ', array_fill(0, count($includePrefixes), '`alias` LIKE ?'));
+        $includePrefixesCount = count($includePrefixes);
+        if($includePrefixesCount > 0) {
+            $includePrefixesStr = " AND (" . implode(' OR ', array_fill(0, $includePrefixesCount, '`alias` LIKE ?')) . ")";
+        } else {
+            $includePrefixesStr = '';
+        }
 
         $conditionsStr = count($conditions) > 0 ? ' AND (' . implode(' OR ', array_map(function($condition) { return "`{$condition[0]}` {$condition[1]} ?"; }, $conditions)) . ')' : '';
 
-        $queryStr = "SELECT COUNT(*) FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixes}{$conditionsStr} ORDER BY `id` ASC;";
+        $queryStr = "SELECT COUNT(*) FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixesStr}{$conditionsStr} ORDER BY `id` ASC;";
 
         $q = $this->pdo->prepare($queryStr);
 
@@ -1023,7 +1028,7 @@ class Vines {
 
         $offset = $pageSize * ($page - 1);
 
-        $queryStr = "SELECT `id`, `lt`, `rt`, `alias`, `description` FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixes}{$conditionsStr} ORDER BY `id` ASC LIMIT $offset, $pageSize;";
+        $queryStr = "SELECT `id`, `lt`, `rt`, `alias`, `description` FROM `" . static::RESOURCE_TABLE . "` WHERE `lt` BETWEEN ? AND ?{$includePrefixesStr}{$conditionsStr} ORDER BY `id` ASC LIMIT $offset, $pageSize;";
         
         //dd($queryStr, $queryParams);
     
