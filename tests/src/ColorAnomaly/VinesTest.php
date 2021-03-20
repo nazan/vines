@@ -41,7 +41,6 @@ class VinesTest extends TestCase {
         $this->o->addRole('student');
 
         $this->o->addTag('staff');
-        $this->o->tagRole('principal', ['staff']);
         $this->o->tagRole('teacher', ['staff']);
 
         $this->o->addResource('school', Vines::TREE_ROOT_ALIAS);
@@ -67,6 +66,9 @@ class VinesTest extends TestCase {
 
         $this->assertFalse($this->o->allowed('student', 'enter', 'office'));
         $this->assertTrue($this->o->allowed('teacher', 'enter', 'office'));
+        $this->assertFalse($this->o->allowed('principal', 'enter', 'office'));
+
+        $this->o->tagRole('principal', ['staff']);
         $this->assertTrue($this->o->allowed('principal', 'enter', 'office'));
 
         $this->assertFalse($this->o->allowed('student', 'enter', 'principal-office'));
