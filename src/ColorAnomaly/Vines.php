@@ -233,6 +233,9 @@ class Vines {
         } catch (\PDOException $pdoExcp) {
             $this->pdo->rollBack();
             throw $pdoExcp;
+        } catch (\Exception $excp) {
+            $this->pdo->rollBack();
+            throw $excp;
         }
     }
 
@@ -320,6 +323,9 @@ class Vines {
         } catch (\PDOException $pdoExcp) {
             $this->pdo->rollBack();
             throw $pdoExcp;
+        } catch (\Exception $excp) {
+            $this->pdo->rollBack();
+            throw $excp;
         }
     }
 
@@ -490,6 +496,9 @@ class Vines {
             } catch (\PDOException $pdoExcp) {
                 $this->pdo->rollBack();
                 throw $pdoExcp;
+            } catch (\Exception $excp) {
+                $this->pdo->rollBack();
+                throw $excp;
             }
         } else {
             if (is_array($related)) {
