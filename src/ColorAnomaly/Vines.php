@@ -231,10 +231,16 @@ class Vines {
                 return false;
             }
         } catch (\PDOException $pdoExcp) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
             throw $pdoExcp;
         } catch (\Exception $excp) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
             throw $excp;
         }
     }
@@ -321,10 +327,16 @@ class Vines {
 
             return true;
         } catch (\PDOException $pdoExcp) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
             throw $pdoExcp;
         } catch (\Exception $excp) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
             throw $excp;
         }
     }
@@ -494,10 +506,16 @@ class Vines {
 
                 return true;
             } catch (\PDOException $pdoExcp) {
-                $this->pdo->rollBack();
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+
                 throw $pdoExcp;
             } catch (\Exception $excp) {
-                $this->pdo->rollBack();
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                
                 throw $excp;
             }
         } else {
