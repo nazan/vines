@@ -176,72 +176,85 @@ class Vines {
     }
 
     public function addTreeNode($table, $alias, $parentAlias, $description = null) {
-        try {
-            $this->pdo->beginTransaction();
-            $q = $this->pdo->prepare("SELECT * FROM `$table` WHERE `alias`=:alias");
-            $q->bindValue(':alias', $parentAlias, \PDO::PARAM_STR);
+        if($this->pdo->inTransaction()) {
+            return $this->addTreeNodeWorkLoad($table, $alias, $parentAlias, $description);
+        } else {
+            try {
+                $this->pdo->beginTransaction();
+                $result = $this->addTreeNodeWorkLoad($table, $alias, $parentAlias, $description);
+
+                if($result) {
+                    $this->pdo->commit();
+                }
+
+                return $result;
+            } catch (\PDOException $pdoExcp) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+    
+                throw $pdoExcp;
+            } catch (\Exception $excp) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+    
+                throw $excp;
+            }
+        }
+    }
+
+    private function addTreeNodeWorkLoad($table, $alias, $parentAlias, $description = null) {
+        $q = $this->pdo->prepare("SELECT * FROM `$table` WHERE `alias`=:alias");
+        $q->bindValue(':alias', $parentAlias, \PDO::PARAM_STR);
+
+        $q->execute();
+
+        $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
+
+        if ($err[0] !== '00000') {
+            throw new \PDOException("Retrieval of given $table parent failed while trying to add a new node. ERROR: " . $err[2]);
+        }
+
+        if ($q->rowCount() > 0) {
+            $parent = $q->fetch(\PDO::FETCH_ASSOC);
+            $newLt = $parent['rt'];
+            $newRt = $newLt + 1;
+
+            $q = $this->pdo->prepare("UPDATE `$table` SET " .
+                    "`lt` = CASE WHEN `lt` >= :pr THEN `lt`+2 ELSE `lt` END, " .
+                    "`rt` = `rt`+2 " .
+                    "WHERE `rt` >= :pl AND `rt` >= :pr2");
+
+            $q->bindValue(':pr', $parent['rt'], \PDO::PARAM_INT);
+            $q->bindValue(':pl', $parent['lt'], \PDO::PARAM_INT);
+            $q->bindValue(':pr2', $parent['rt'], \PDO::PARAM_INT);
 
             $q->execute();
 
             $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
 
             if ($err[0] !== '00000') {
-                throw new \PDOException("Retrieval of given $table parent failed while trying to add a new node. ERROR: " . $err[2]);
+                throw new \PDOException("Recalculation of left/right values failed for $table while adding a new node. ERROR: " . $err[2]);
             }
 
-            if ($q->rowCount() > 0) {
-                $parent = $q->fetch(\PDO::FETCH_ASSOC);
-                $newLt = $parent['rt'];
-                $newRt = $newLt + 1;
+            $q = $this->pdo->prepare("INSERT INTO `$table` (`lt`, `rt`, `alias`, `description`) VALUES (:lt, :rt, :alias, :dscp)");
+            $q->bindValue(':lt', $newLt, \PDO::PARAM_INT);
+            $q->bindValue(':rt', $newRt, \PDO::PARAM_INT);
+            $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
+            $q->bindValue(':dscp', is_null($description) ? null : $description, is_null($description) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
 
-                $q = $this->pdo->prepare("UPDATE `$table` SET " .
-                        "`lt` = CASE WHEN `lt` >= :pr THEN `lt`+2 ELSE `lt` END, " .
-                        "`rt` = `rt`+2 " .
-                        "WHERE `rt` >= :pl AND `rt` >= :pr2");
+            $q->execute();
 
-                $q->bindValue(':pr', $parent['rt'], \PDO::PARAM_INT);
-                $q->bindValue(':pl', $parent['lt'], \PDO::PARAM_INT);
-                $q->bindValue(':pr2', $parent['rt'], \PDO::PARAM_INT);
+            $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
 
-                $q->execute();
-
-                $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
-
-                if ($err[0] !== '00000') {
-                    throw new \PDOException("Recalculation of left/right values failed for $table while adding a new node. ERROR: " . $err[2]);
-                }
-
-                $q = $this->pdo->prepare("INSERT INTO `$table` (`lt`, `rt`, `alias`, `description`) VALUES (:lt, :rt, :alias, :dscp)");
-                $q->bindValue(':lt', $newLt, \PDO::PARAM_INT);
-                $q->bindValue(':rt', $newRt, \PDO::PARAM_INT);
-                $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
-                $q->bindValue(':dscp', is_null($description) ? null : $description, is_null($description) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
-
-                $q->execute();
-
-                $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
-
-                if ($err[0] !== '00000') {
-                    throw new \PDOException("Insertion of new node into $table failed. ERROR: " . $err[2]);
-                }
-
-                $this->pdo->commit();
-                return true;
-            } else {
-                return false;
-            }
-        } catch (\PDOException $pdoExcp) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
+            if ($err[0] !== '00000') {
+                throw new \PDOException("Insertion of new node into $table failed. ERROR: " . $err[2]);
             }
 
-            throw $pdoExcp;
-        } catch (\Exception $excp) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-
-            throw $excp;
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -270,75 +283,87 @@ class Vines {
             throw new \Exception("Root node of $table cannot be removed.");
         }
 
-        try {
-            $this->pdo->beginTransaction();
-            $q = $this->pdo->prepare("SELECT * FROM `$table` WHERE `alias`=:alias");
-            $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
+        if($this->pdo->inTransaction()) {
+            return $this->removeTreeNodeWorkLoad($table, $alias);
+        } else {
+            try {
+                $this->pdo->beginTransaction();
+                $result = $this->removeTreeNodeWorkLoad($table, $alias);
+
+                if($result) {
+                    $this->pdo->commit();
+                }
+
+                return $result;
+            } catch (\PDOException $pdoExcp) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+    
+                throw $pdoExcp;
+            } catch (\Exception $excp) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+    
+                throw $excp;
+            }
+        }
+    }
+
+    private function removeTreeNodeWorkLoad($table, $alias) {
+        $q = $this->pdo->prepare("SELECT * FROM `$table` WHERE `alias`=:alias");
+        $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
+
+        $q->execute();
+
+        $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
+
+        if ($err[0] !== '00000') {
+            throw new \PDOException("Failed to retrieve $table while trying to remove node. ERROR: " . $err[2]);
+        }
+
+        if ($q->rowCount() > 0) {
+            $node = $q->fetch(\PDO::FETCH_ASSOC);
+
+            $q = $this->pdo->prepare("DELETE FROM `$table` WHERE `lt` >= :lt AND `rt` <= :rt");
+
+            $q->bindValue(':lt', $node['lt'], \PDO::PARAM_INT);
+            $q->bindValue(':rt', $node['rt'], \PDO::PARAM_INT);
 
             $q->execute();
 
             $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
 
             if ($err[0] !== '00000') {
-                throw new \PDOException("Failed to retrieve $table while trying to remove node. ERROR: " . $err[2]);
+                throw new \PDOException("Query failed while trying to remove children of given node. ERROR: " . $err[2]);
             }
 
-            if ($q->rowCount() > 0) {
-                $node = $q->fetch(\PDO::FETCH_ASSOC);
+            $toDeduct = $node['rt'] - $node['lt'] + 1;
 
-                $q = $this->pdo->prepare("DELETE FROM `$table` WHERE `lt` >= :lt AND `rt` <= :rt");
+            $q = $this->pdo->prepare("UPDATE `$table` SET " .
+                    "`lt` = CASE WHEN `lt` >= :rt1 THEN `lt`-:deduction1 ELSE `lt` END, " .
+                    "`rt` = `rt`-:deduction2 " .
+                    "WHERE `rt` >= :lt1 AND `rt` >= :rt2");
 
-                $q->bindValue(':lt', $node['lt'], \PDO::PARAM_INT);
-                $q->bindValue(':rt', $node['rt'], \PDO::PARAM_INT);
+            $q->bindValue(':lt1', $node['lt'], \PDO::PARAM_INT);
+            $q->bindValue(':rt1', $node['rt'], \PDO::PARAM_INT);
+            $q->bindValue(':rt2', $node['rt'], \PDO::PARAM_INT);
+            $q->bindValue(':deduction1', $toDeduct, \PDO::PARAM_INT);
+            $q->bindValue(':deduction2', $toDeduct, \PDO::PARAM_INT);
 
-                $q->execute();
+            $q->execute();
 
-                $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
+            $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
 
-                if ($err[0] !== '00000') {
-                    throw new \PDOException("Query failed while trying to remove children of given node. ERROR: " . $err[2]);
-                }
-
-                $toDeduct = $node['rt'] - $node['lt'] + 1;
-
-                $q = $this->pdo->prepare("UPDATE `$table` SET " .
-                        "`lt` = CASE WHEN `lt` >= :rt1 THEN `lt`-:deduction1 ELSE `lt` END, " .
-                        "`rt` = `rt`-:deduction2 " .
-                        "WHERE `rt` >= :lt1 AND `rt` >= :rt2");
-
-                $q->bindValue(':lt1', $node['lt'], \PDO::PARAM_INT);
-                $q->bindValue(':rt1', $node['rt'], \PDO::PARAM_INT);
-                $q->bindValue(':rt2', $node['rt'], \PDO::PARAM_INT);
-                $q->bindValue(':deduction1', $toDeduct, \PDO::PARAM_INT);
-                $q->bindValue(':deduction2', $toDeduct, \PDO::PARAM_INT);
-
-                $q->execute();
-
-                $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
-
-                if ($err[0] !== '00000') {
-                    throw new \PDOException("Recalculation of left/right values failed for $table while removing a new node. ERROR: " . $err[2]);
-                }
-
-                $this->pdo->commit();
-            } else {
-                throw new \Exception("Non existing $table node deletion attempt.");
+            if ($err[0] !== '00000') {
+                throw new \PDOException("Recalculation of left/right values failed for $table while removing a new node. ERROR: " . $err[2]);
             }
-
-            return true;
-        } catch (\PDOException $pdoExcp) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-
-            throw $pdoExcp;
-        } catch (\Exception $excp) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-
-            throw $excp;
+        } else {
+            throw new \Exception("Non existing $table node deletion attempt.");
         }
+
+        return true;
     }
 
     public function addResource($alias, $parentAlias, $description = null) {
@@ -473,58 +498,70 @@ class Vines {
 
     public function addRole($alias, $related = null, $description = null) {
         if ($this->roleStructure == static::ROLE_STRUCT_FLAT_W_TAGS) {
-            try {
-                $this->pdo->beginTransaction();
-
-                $q = $this->pdo->prepare("INSERT INTO `" . static::ROLE_TABLE . "` (`alias`, `description`) VALUES (:alias, :dscp)");
-                $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
-                $q->bindValue(':dscp', is_null($description) ? null : $description, is_null($description) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
-
-                $q->execute();
-
-                $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
-
-                if ($err[0] !== '00000') {
-                    throw new \PDOException("Insertion of new role failed. ERROR: " . $err[2]);
-                }
-
-                if (!is_null($related)) {
-                    if (!is_array($related)) {
-                        $related = array($related);
+            if($this->pdo->inTransaction()) {
+                return $this->addFlatRoleWorkLoad($alias, $related, $description);
+            } else {
+                try {
+                    $this->pdo->beginTransaction();
+    
+                    $result = $this->addFlatRoleWorkLoad($alias, $related, $description);
+    
+                    if($result) {
+                        $this->pdo->commit();
                     }
-
-                    if (count($related) > 0) {
-                        foreach ($related as $tagName) {
-                            $this->addTag($tagName);
-                        }
-
-                        $this->tagRole($alias, $related);
+    
+                    return $result;
+                } catch (\PDOException $pdoExcp) {
+                    if ($this->pdo->inTransaction()) {
+                        $this->pdo->rollBack();
                     }
+    
+                    throw $pdoExcp;
+                } catch (\Exception $excp) {
+                    if ($this->pdo->inTransaction()) {
+                        $this->pdo->rollBack();
+                    }
+                    
+                    throw $excp;
                 }
-
-                $this->pdo->commit();
-
-                return true;
-            } catch (\PDOException $pdoExcp) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
-
-                throw $pdoExcp;
-            } catch (\Exception $excp) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
-                
-                throw $excp;
             }
         } else {
             if (is_array($related)) {
                 $related = array_shift($related);
             }
 
-            return $this->addTreeNode(static::ROLE_TABLE, $alias, $related);
+            return $this->addTreeNode(static::ROLE_TABLE, $alias, $related, $description);
         }
+    }
+
+    private function addFlatRoleWorkLoad($alias, $related = null, $description = null) {
+        $q = $this->pdo->prepare("INSERT INTO `" . static::ROLE_TABLE . "` (`alias`, `description`) VALUES (:alias, :dscp)");
+        $q->bindValue(':alias', $alias, \PDO::PARAM_STR);
+        $q->bindValue(':dscp', is_null($description) ? null : $description, is_null($description) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+
+        $q->execute();
+
+        $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
+
+        if ($err[0] !== '00000') {
+            throw new \PDOException("Insertion of new role failed. ERROR: " . $err[2]);
+        }
+
+        if (!is_null($related)) {
+            if (!is_array($related)) {
+                $related = array($related);
+            }
+
+            if (count($related) > 0) {
+                foreach ($related as $tagName) {
+                    $this->addTag($tagName);
+                }
+
+                $this->tagRole($alias, $related);
+            }
+        }
+
+        return true;
     }
 
     public function editRole($alias, $description) {
