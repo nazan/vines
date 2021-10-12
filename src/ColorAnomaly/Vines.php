@@ -815,6 +815,16 @@ class Vines {
         }
     }
 
+    public function allowedToAny($roles, $action, $resource) {
+        foreach($roles as $role) {
+            if($this->allowed($role, $action, $resource)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function allowed($role, $action, $resource) {
         if(empty($role)) {
             return false;
@@ -999,6 +1009,7 @@ class Vines {
                 'state' => [
                     'expanded' => true,
                 ],
+                'selectable' => true,
                 'nodes' => [],
             ];
 
