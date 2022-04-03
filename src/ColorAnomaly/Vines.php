@@ -30,6 +30,8 @@ class Vines {
     const ROLE_STRUCT_HIER = 1;
     const ROLE_STRUCT_FLAT_W_TAGS = 2;
 
+    const DEFAULT_PAGE_SIZE = 10;
+
     const EVENT_ID_ROLE_DELETED = 'role_deleted';
 
     protected $pdo;
@@ -1194,18 +1196,53 @@ class Vines {
         return $q->rowCount() > 0 ? array_map(function($item) { return ['value'=>$item, 'label'=>$item['description']]; }, $q->fetchAll(\PDO::FETCH_ASSOC)) : [];
     }
 
-    public function getRoles($roleAliases) {
-        if(is_array($roleAliases) && count($roleAliases) > 0) {
-            $conditions = " WHERE `rol`.`alias` in (" . implode(",", array_fill(0, count($roleAliases), '?')) . ")";
+    public function getRoles($keyword, $page = null, $pageSize = self::DEFAULT_PAGE_SIZE) {
+        if(is_string($keyword)) {
+            $conditions = "WHERE `rol`.`alias` like ? OR `rol`.`description` like ?";
+            $keyword = "%$keyword%";
+            $keyword = [$keyword, $keyword];
+        } elseif(is_array($keyword) && count($keyword) > 0) {
+            $conditions = "WHERE `rol`.`alias` in (" . implode(",", array_fill(0, count($keyword), '?')) . ")";
         } else {
             $conditions = '';
         }
 
-        $q = $this->pdo->prepare("SELECT `rol`.`id` AS `id`, `rol`.`alias` AS `alias`, `rol`.`description` AS `description` " .
-                "FROM `" . static::ROLE_TABLE . "` AS `rol`$conditions " .
-                "ORDER BY `rol`.`description` ASC");
+        $selectClause = "SELECT `rol`.`id` AS `id`, `rol`.`alias` AS `alias`, `rol`.`description` AS `description`";
+        $fromClause = "FROM `" . static::ROLE_TABLE . "` AS `rol`";
+        $orderClause = "ORDER BY `rol`.`description` ASC";
 
-        $q->execute($roleAliases);
+        if(!is_null($page)) {
+            $q = $this->pdo->prepare(implode(' ', [
+                'select count(*) as `cnt`',
+                $fromClause,
+                $conditions
+            ]));
+    
+            $q->execute($keyword);
+    
+            $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
+    
+            if ($err[0] !== '00000') {
+                throw new \PDOException("Failed to retrieve roles count while converting aliases to array of objects. ERROR: " . $err[2]);
+            }
+    
+            $cnt = $q->fetchColumn();
+            $offset = ($page - 1) * $pageSize;
+            $limitClause = "LIMIT $offset, $pageSize";
+        } else {
+            $limitClause = '';
+            $cnt = null;
+        }
+
+        $q = $this->pdo->prepare(implode(' ', [
+            $selectClause,
+            $fromClause,
+            $conditions,
+            $orderClause,
+            $limitClause]
+        ));
+
+        $q->execute($keyword);
 
         $err = ($q !== false ? $q->errorInfo() : $this->pdo->errorInfo());
 
@@ -1213,7 +1250,18 @@ class Vines {
             throw new \PDOException("Failed to retrieve roles while converting aliases to array of objects. ERROR: " . $err[2]);
         }
 
-        return $q->fetchAll(\PDO::FETCH_ASSOC);
+        if(is_null($page)) {
+            return $q->fetchAll(\PDO::FETCH_ASSOC);
+        } else {
+            return [
+                'rows' => $q->fetchAll(\PDO::FETCH_ASSOC),
+                'pagination' => [
+                    'page' => $page,
+                    'total' => $cnt,
+                    'page_size' => $pageSize
+                ],
+            ];
+        }
     }
 
     /**
